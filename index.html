@@ -1,18 +1,165 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
-    <title>TecnoPrism Cloud Portal</title>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Cloud Engineer Portfolio | TecnoPrism</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/js/all.min.js"></script>
     <style>
-        body { font-family: sans-serif; text-align: center; margin-top: 50px; background-color: #f4f4f4; }
-        .card { background: white; padding: 20px; border-radius: 10px; display: inline-block; box-shadow: 0px 0px 10px rgba(0,0,0,0.1); }
-        h1 { color: #0078d4; }
+        :root {
+            --primary: #0078d4;
+            --bg: #0a0a0c;
+            --card-bg: #16161d;
+            --text: #e0e0e0;
+        }
+
+        body {
+            margin: 0;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: var(--bg);
+            color: var(--text);
+            overflow-x: hidden;
+        }
+
+        /* Animated Background */
+        .bg-glow {
+            position: fixed;
+            top: 0; left: 0; width: 100%; height: 100%;
+            background: radial-gradient(circle at 50% 50%, #0078d422 0%, transparent 70%);
+            z-index: -1;
+            animation: pulse 8s infinite alternate;
+        }
+
+        @keyframes pulse {
+            from { transform: scale(1); opacity: 0.5; }
+            to { transform: scale(1.2); opacity: 0.8; }
+        }
+
+        .container {
+            max-width: 900px;
+            margin: 0 auto;
+            padding: 40px 20px;
+            text-align: center;
+        }
+
+        header {
+            padding: 60px 0;
+            animation: fadeInDown 1s ease-out;
+        }
+
+        h1 {
+            font-size: 3rem;
+            margin-bottom: 10px;
+            background: linear-gradient(90deg, #0078d4, #00c6ff);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+
+        .tagline {
+            font-size: 1.2rem;
+            color: #888;
+            letter-spacing: 2px;
+        }
+
+        .grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 25px;
+            margin-top: 50px;
+        }
+
+        .card {
+            background: var(--card-bg);
+            padding: 30px;
+            border-radius: 15px;
+            border: 1px solid #ffffff11;
+            transition: all 0.3s ease;
+            animation: fadeInUp 1s ease-out backwards;
+        }
+
+        .card:hover {
+            transform: translateY(-10px);
+            border-color: var(--primary);
+            box-shadow: 0 10px 30px rgba(0, 112, 212, 0.2);
+        }
+
+        .card i {
+            font-size: 2.5rem;
+            color: var(--primary);
+            margin-bottom: 20px;
+        }
+
+        .status-badge {
+            display: inline-block;
+            padding: 8px 20px;
+            background: #0078d422;
+            border: 1px solid var(--primary);
+            border-radius: 50px;
+            color: var(--primary);
+            margin-top: 40px;
+            font-weight: bold;
+            animation: blink 2s infinite;
+        }
+
+        @keyframes fadeInDown {
+            from { opacity: 0; transform: translateY(-30px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        @keyframes fadeInUp {
+            from { opacity: 0; transform: translateY(30px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        @keyframes blink {
+            50% { opacity: 0.6; box-shadow: 0 0 15px var(--primary); }
+        }
+
+        footer {
+            margin-top: 100px;
+            color: #555;
+            font-size: 0.9rem;
+        }
     </style>
 </head>
 <body>
-    <div class="card">
-        <h1>Hello from the Azure Cloud!</h1>
-        <p>I am a Cloud Engineer at <strong>TecnoPrism</strong>.</p>
-        <p>Current Status: 🟢 Learning Static Web Apps</p>
+
+    <div class="bg-glow"></div>
+
+    <div class="container">
+        <header>
+            <h1>SANTOSH PRAJAPATI</h1>
+            <div class="tagline">CLOUD ENGINEER | RPA DEVELOPER</div>
+        </header>
+
+        <div class="grid">
+            <div class="card" style="animation-delay: 0.2s;">
+                <i class="fas fa-robot"></i>
+                <h3>RPA Automation</h3>
+                <p>Expert in Automation Anywhere at <strong>TecnoPrism</strong>, building intelligent bots for complex workflows.</p>
+            </div>
+
+            <div class="card" style="animation-delay: 0.4s;">
+                <i class="fas fa-cloud"></i>
+                <h3>Azure Cloud</h3>
+                <p>Deploying scalable infrastructure and serverless functions to power modern enterprise apps.</p>
+            </div>
+
+            <div class="card" style="animation-delay: 0.6s;">
+                <i class="fas fa-code"></i>
+                <h3>DevOps & Python</h3>
+                <p>Mastering CI/CD pipelines, Python scripting, and the "Infrastructure as Code" mindset.</p>
+            </div>
+        </div>
+
+        <div class="status-badge">
+            <i class="fas fa-circle"></i> SYSTEM LIVE: DEPLOYED VIA AZURE
+        </div>
+
+        <footer>
+            Built with ❤️ in Vadodara, Gujarat | Powered by Azure Static Web Apps
+        </footer>
     </div>
+
 </body>
 </html>
