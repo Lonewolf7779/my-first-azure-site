@@ -22,9 +22,25 @@ LOCATIONS = {
     "seoul": {"lat": 37.5665, "lon": 126.9780, "currency": "KRW", "fuel": {"petrol": "₩1,600", "diesel": "₩1,450"}}
 }
 
-def get_currency_symbol(curr):
-    symbols = {"INR": "₹", "JPY": "¥", "KRW": "₩"}
-    return symbols.get(curr, curr)
+def format_price(amount, currency):
+    amount = float(amount)
+    if currency == "INR":
+        amount_int = int(amount)
+        s = str(amount_int)
+        if len(s) > 3:
+            last_three = s[-3:]
+            other = s[:-3]
+            chunks = []
+            while other:
+                chunks.insert(0, other[-2:])
+                other = other[:-2]
+            return f"₹{','.join(chunks)},{last_three}"
+        return f"₹{s}"
+    elif currency == "JPY":
+        return f"¥{amount:,.0f}"
+    elif currency == "KRW":
+        return f"₩{amount:,.0f}"
+    return f"{amount:,.2f}"
 
 @app.route(route="GetPrices")
 def GetPrices(req: func.HttpRequest) -> func.HttpResponse:
@@ -74,7 +90,6 @@ def GetPrices(req: func.HttpRequest) -> func.HttpResponse:
     logging.info(f"Fetching fresh data for: {location}")
     loc_data = LOCATIONS[location]
     curr = loc_data["currency"]
-    sym = get_currency_symbol(curr)
         
     unified_data = {
         "weather": "Service Unavailable",
@@ -107,7 +122,7 @@ def GetPrices(req: func.HttpRequest) -> func.HttpResponse:
             price_oz = g_res.json().get("price")
             if price_oz:
                 price_10g = price_oz / 3.11034768
-                unified_data["gold"] = f"{sym}{price_10g:,.2f}"
+                unified_data["gold"] = format_price(price_10g, curr)
                 
                 # Check Target Price for Alert
                 target_str = os.getenv("TARGET_PRICE")
@@ -128,7 +143,7 @@ def GetPrices(req: func.HttpRequest) -> func.HttpResponse:
                                 payload = {
                                     "From": os.getenv("TWILIO_FROM_NUMBER", "whatsapp:+14155238886"),
                                     "To": f"whatsapp:{recipient}",
-                                    "Body": f"🚨 PRICE ALERT! Gold has fallen to {sym}{price_10g:,.2f} in {location.capitalize()} (Target: {sym}{target:,.2f})"
+                                    "Body": f"🚨 PRICE ALERT! Gold has fallen to {format_price(price_10g, curr)} in {location.capitalize()} (Target: {format_price(target, curr)})"
                                 }
                                 requests.post(twilio_url, auth=(twilio_sid, twilio_token), data=payload)
                         else:
@@ -148,8 +163,9 @@ def GetPrices(req: func.HttpRequest) -> func.HttpResponse:
             price_oz = s_res.json().get("price")
             if price_oz:
                 price_1kg = (price_oz / 31.1034768) * 1000
-                unified_data["silver"] = f"{sym}{price_1kg:,.2f}"
-    except Exception:
+                unified_data["silver"] = format_price(price_1kg, curr)
+    except Exception as e:
+        logging.error(f"Silver API Error: {e}")
         pass
 
     # Store in Cache
