@@ -160,6 +160,27 @@
             Built with ❤️ in Vadodara, Gujarat | Powered by Azure Static Web Apps
         </footer>
     </div>
+<script>
+    async function updatePrices() {
+        try {
+            // This calls your live Azure API
+            const response = await fetch('/api/GetPrices');
+            const data = await response.json();
 
+            // This updates the "status-badge" area with the price
+            const statusArea = document.querySelector('.status-badge');
+            statusArea.innerHTML = `
+                <i class="fas fa-gas-pump"></i> Petrol: ${data.petrol_vadodara} | 
+                <i class="fas fa-coins"></i> Gold: ${data.gold}
+            `;
+            statusArea.style.animation = "none"; // Stop the blinking once loaded
+        } catch (error) {
+            console.error('Error fetching prices:', error);
+        }
+    }
+
+    // Run the function when the page loads
+    window.onload = updatePrices;
+</script>
 </body>
 </html>
