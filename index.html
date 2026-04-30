@@ -3,111 +3,395 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>OmniDash | Live Market & Weather</title>
-    <!-- GSAP for Animations -->
+    <title>Vadodara Live Market Insight Hub</title>
+    <!-- Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300;400;600;700&display=swap" rel="stylesheet">
+    
+    <!-- GSAP & Lenis -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.2/gsap.min.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/js/all.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.2/ScrollTrigger.min.js"></script>
+    <script src="https://unpkg.com/@studio-freight/lenis@1.0.32/dist/lenis.min.js"></script>
+    
     <style>
-        :root { --primary: #6366f1; --bg: #0f172a; --card: #1e293b; --text: #f8fafc; }
-        body { margin: 0; font-family: 'Inter', sans-serif; background: var(--bg); color: var(--text); overflow-x: hidden; }
+        :root {
+            --bg-color: #050505;
+            --text-color: #ffffff;
+            --font-main: 'Space Grotesk', sans-serif;
+            --accent-orange: #ff6d00;
+            --accent-blue: #00b4d8;
+            --accent-gold: #ffbe0b;
+        }
+
+        body, html {
+            margin: 0;
+            padding: 0;
+            background-color: var(--bg-color);
+            color: var(--text-color);
+            font-family: var(--font-main);
+            overflow-x: hidden;
+            overscroll-behavior: none;
+        }
+
+        /* Aura Glow (Follows cursor) */
+        #aura {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 400px;
+            height: 400px;
+            background: radial-gradient(circle, rgba(157,78,221,0.15) 0%, rgba(0,180,216,0.1) 40%, rgba(5,5,5,0) 70%);
+            border-radius: 50%;
+            pointer-events: none;
+            z-index: 9999;
+            transform: translate(-50%, -50%);
+            mix-blend-mode: screen;
+            transition: opacity 0.3s ease;
+        }
+
+        /* Hero Header */
+        header {
+            min-height: 80vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 2rem;
+            position: relative;
+            z-index: 2;
+        }
+
+        h1.massive-header {
+            font-size: 18vw;
+            line-height: 0.85;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: -0.05em;
+            margin: 0;
+            text-align: center;
+        }
+
+        /* 12-Column Grid Bento Layout */
+        .dashboard {
+            display: grid;
+            grid-template-columns: repeat(12, 1fr);
+            gap: 1.5rem;
+            padding: 2rem;
+            max-width: 1800px;
+            margin: 0 auto 5rem;
+            position: relative;
+            z-index: 2;
+        }
+
+        .tile {
+            background: rgba(255, 255, 255, 0.03);
+            border: 1px solid rgba(255, 255, 255, 0.05);
+            border-radius: 24px;
+            padding: 2rem;
+            backdrop-filter: blur(16px);
+            -webkit-backdrop-filter: blur(16px);
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+            position: relative;
+            overflow: hidden;
+            transition: border-color 0.3s ease, transform 0.3s ease;
+        }
         
-        .navbar { display: flex; justify-content: space-around; padding: 20px; background: #1e293b88; backdrop-filter: blur(10px); position: sticky; top: 0; z-index: 100; border-bottom: 1px solid #ffffff11; }
-        .nav-item { cursor: pointer; padding: 10px 20px; border-radius: 8px; transition: 0.3s; font-weight: 600; opacity: 0.7; }
-        .nav-item.active { background: var(--primary); opacity: 1; box-shadow: 0 0 20px #6366f155; }
+        .tile:hover {
+            border-color: rgba(255, 255, 255, 0.15);
+        }
 
-        .hero { padding: 80px 20px; text-align: center; }
-        .hero h1 { font-size: 3.5rem; margin: 0; background: linear-gradient(to right, #818cf8, #c084fc); -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
+        /* Asymmetric Col Spans */
+        .col-6 { grid-column: span 6; }
+        .col-4 { grid-column: span 4; }
+        .col-8 { grid-column: span 8; }
+        .col-2 { grid-column: span 2; }
+        .row-2 { grid-row: span 2; }
 
-        .container { max-width: 1000px; margin: 0 auto; padding: 20px; min-height: 400px; }
+        /* Tile content styling */
+        .tile-header {
+            font-size: 0.9rem;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            color: rgba(255,255,255,0.6);
+            margin-bottom: 2rem;
+        }
+
+        .tile-value {
+            font-size: 4rem;
+            font-weight: 600;
+            line-height: 1;
+            margin: 0;
+            position: relative;
+            z-index: 2;
+        }
+
+        .tile-sub {
+            font-size: 1.2rem;
+            color: rgba(255,255,255,0.7);
+            margin-top: 0.5rem;
+        }
         
-        /* Dashboard Card */
-        .data-card { background: var(--card); border-radius: 24px; padding: 40px; border: 1px solid #ffffff11; display: none; transform: translateY(20px); opacity: 0; }
-        .data-card.active { display: block; }
+        /* Accents */
+        .accent-gold .tile-value { color: var(--accent-gold); text-shadow: 0 0 20px rgba(255,190,11,0.3); }
+        .accent-blue .tile-value { color: var(--accent-blue); text-shadow: 0 0 20px rgba(0,180,216,0.3); }
+        .accent-orange .tile-value { color: var(--accent-orange); text-shadow: 0 0 20px rgba(255,109,0,0.3); }
 
-        .price-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 20px; margin-top: 30px; }
-        .price-item { background: #0f172a88; padding: 20px; border-radius: 15px; border: 1px solid #ffffff05; text-align: center; }
-        .price-item h4 { margin: 0; color: #94a3b8; font-size: 0.9rem; }
-        .price-item p { font-size: 1.8rem; font-weight: bold; margin: 10px 0; color: var(--primary); }
+        .sparkline {
+            width: 100%;
+            height: 60px;
+            margin-top: 1rem;
+            background: linear-gradient(90deg, transparent, rgba(255,255,255,0.05));
+            border-bottom: 2px solid var(--accent-orange);
+            position: relative;
+        }
 
-        .loading-spinner { display: none; color: var(--primary); font-size: 2rem; margin: 50px auto; }
+        .sparkline::after {
+            content: '';
+            position: absolute;
+            right: 0;
+            bottom: -5px;
+            width: 10px;
+            height: 10px;
+            background: var(--accent-orange);
+            border-radius: 50%;
+            box-shadow: 0 0 15px var(--accent-orange);
+        }
+
+        /* Weather UI */
+        .weather-info { display: flex; gap: 2rem; align-items: baseline; flex-wrap: wrap; }
+        .weather-stat { display: flex; flex-direction: column; }
+        .weather-stat span:first-child { font-size: 0.8rem; color: #888; text-transform: uppercase; letter-spacing: 1px;}
+        .weather-stat span:last-child { font-size: 1.5rem; font-weight: 600; }
+
+        /* Mobile Adjustments */
+        @media (max-width: 900px) {
+            .dashboard {
+                grid-template-columns: 1fr;
+                gap: 1rem;
+                padding: 1rem;
+            }
+            .tile {
+                grid-column: span 1 !important;
+                grid-row: span 1 !important;
+            }
+            h1.massive-header { font-size: 20vw; }
+        }
     </style>
 </head>
 <body>
 
-<nav class="navbar">
-    <div class="nav-item active" onclick="showTab('fuel', this)"><i class="fas fa-gas-pump"></i> Fuel</div>
-    <div class="nav-item" onclick="showTab('metals', this)"><i class="fas fa-coins"></i> Metals</div>
-    <div class="nav-item" onclick="showTab('weather', this)"><i class="fas fa-cloud-sun"></i> Weather</div>
-</nav>
+    <div id="aura"></div>
 
-<div class="hero">
-    <h1 id="main-title">Vadodara Live Insight</h1>
-    <p>Powered by TecnoPrism Cloud Infrastructure</p>
-</div>
+    <header>
+        <h1 class="massive-header magnetic" id="title">VADODARA<br>INSIGHT</h1>
+    </header>
 
-<div class="container">
-    <div id="loader" class="loading-spinner"><i class="fas fa-spinner fa-spin"></i></div>
-
-    <!-- Fuel Tab -->
-    <div id="fuel" class="data-card active">
-        <h2>Live Fuel Prices</h2>
-        <div class="price-grid">
-            <div class="price-item"><h4>Petrol (Regular)</h4><p id="petrol-val">₹94.52</p></div>
-            <div class="price-item"><h4>Diesel</h4><p id="diesel-val">₹89.76</p></div>
+    <main class="dashboard">
+        <!-- Market Vault -->
+        <div class="tile col-6 row-2 accent-gold magnetic">
+            <div class="tile-header">Market Vault • 24K Gold</div>
+            <div>
+                <h2 class="tile-value" id="gold-price">Fetching...</h2>
+                <div class="tile-sub">per 10g</div>
+            </div>
         </div>
-    </div>
 
-    <!-- Metals Tab -->
-    <div id="metals" class="data-card">
-        <h2>Commodity Markets</h2>
-        <div class="price-grid">
-            <div class="price-item"><h4>Gold (24K/10g)</h4><p id="gold-val">₹72,450</p></div>
-            <div class="price-item"><h4>Silver (1kg)</h4><p id="silver-val">₹84,200</p></div>
+        <!-- Fuel Station (Petrol) -->
+        <div class="tile col-6 accent-orange magnetic">
+            <div class="tile-header">Fuel Dynamics • Petrol</div>
+            <h2 class="tile-value" id="petrol-price">Fetching...</h2>
+            <div class="sparkline"></div>
         </div>
-    </div>
 
-    <!-- Weather Tab -->
-    <div id="weather" class="data-card">
-        <h2>Local Weather</h2>
-        <div class="price-grid">
-            <div class="price-item"><h4>Temperature</h4><p id="temp-val">32°C</p></div>
-            <div class="price-item"><h4>Condition</h4><p id="cond-val">Sunny</p></div>
+        <!-- Market Vault (Silver) -->
+        <div class="tile col-4 magnetic">
+            <div class="tile-header">Market Vault • Silver</div>
+            <div>
+                <h2 class="tile-value" id="silver-price">Fetching...</h2>
+                <div class="tile-sub">per Kg</div>
+            </div>
         </div>
-    </div>
-</div>
 
-<script>
-    // GSAP Initial Animation
-    gsap.from(".hero h1", { duration: 1.5, y: -50, opacity: 0, ease: "bounce" });
-    gsap.to(".data-card.active", { duration: 0.8, y: 0, opacity: 1, ease: "power2.out" });
+        <!-- Atmosphere (Weather) -->
+        <div class="tile col-8 accent-blue magnetic">
+            <div class="tile-header">Atmosphere • Vadodara</div>
+            <div class="weather-info">
+                <div>
+                    <h2 class="tile-value" id="temp-val">--°C</h2>
+                    <div class="tile-sub" id="weather-desc">Condition</div>
+                </div>
+                <div class="weather-stat">
+                    <span>Wind Speed</span>
+                    <span id="wind-val">-- km/h</span>
+                </div>
+                <div class="weather-stat">
+                    <span>UV Index</span>
+                    <span id="uv-val">--</span>
+                </div>
+            </div>
+        </div>
+    </main>
 
-    function showTab(tabId, el) {
-        // Update Nav
-        document.querySelectorAll('.nav-item').forEach(i => i.classList.remove('active'));
-        el.classList.add('active');
+    <script>
+        // --- 1. SMOOTH SCROLL (LENIS) ---
+        const lenis = new Lenis({
+            duration: 1.2,
+            easing: (t) => Math.min(1, 1.001 - Math.pow(2, -10 * t)),
+            smooth: true
+        });
 
-        // Animation for switching tabs
-        gsap.to(".data-card.active", { duration: 0.3, y: 20, opacity: 0, display: 'none', onComplete: () => {
-            document.querySelectorAll('.data-card').forEach(c => c.classList.remove('active'));
-            const newTab = document.getElementById(tabId);
-            newTab.classList.add('active');
-            newTab.style.display = 'block';
-            gsap.to(newTab, { duration: 0.5, y: 0, opacity: 1 });
-        }});
-    }
+        function raf(time) {
+            lenis.raf(time);
+            requestAnimationFrame(raf);
+        }
+        requestAnimationFrame(raf);
 
-    // This is where your API integration will eventually update real values
-    async function fetchData() {
-        try {
-            const response = await fetch('/api/GetPrices');
-            const data = await response.json();
-            document.getElementById('petrol-val').innerText = data.petrol_vadodara;
-            document.getElementById('gold-val').innerText = data.gold;
-        } catch (e) { console.log("Offline mode"); }
-    }
-    
-    window.onload = fetchData;
-</script>
+        // --- 2. AURA GLOW (MOUSE FOLLOW) ---
+        const aura = document.getElementById('aura');
+        let mouseX = window.innerWidth / 2, mouseY = window.innerHeight / 2;
+        let auraX = mouseX, auraY = mouseY;
+        
+        window.addEventListener('mousemove', (e) => {
+            mouseX = e.clientX;
+            mouseY = e.clientY;
+        });
 
+        function animateAura() {
+            auraX += (mouseX - auraX) * 0.15;
+            auraY += (mouseY - auraY) * 0.15;
+            aura.style.left = auraX + 'px';
+            aura.style.top = auraY + 'px';
+            requestAnimationFrame(animateAura);
+        }
+        animateAura();
+
+        // --- 3. MAGNETIC EFFECT ---
+        const magneticElements = document.querySelectorAll('.magnetic');
+        magneticElements.forEach((el) => {
+            el.addEventListener('mousemove', (e) => {
+                const rect = el.getBoundingClientRect();
+                const x = e.clientX - rect.left - rect.width / 2;
+                const y = e.clientY - rect.top - rect.height / 2;
+                
+                // Limit the shift to keep it subtle and elegant
+                gsap.to(el, {
+                    x: x * 0.05,
+                    y: y * 0.05,
+                    rotationX: -y * 0.015,
+                    rotationY: x * 0.015,
+                    duration: 0.5,
+                    ease: "power3.out"
+                });
+            });
+
+            el.addEventListener('mouseleave', () => {
+                gsap.to(el, {
+                    x: 0,
+                    y: 0,
+                    rotationX: 0,
+                    rotationY: 0,
+                    duration: 0.8,
+                    ease: "power2.out",
+                    clearProps: "all"
+                });
+            });
+        });
+
+        // --- 4. HEADER SCROLL & REVEAL (GSAP) ---
+        gsap.registerPlugin(ScrollTrigger);
+        gsap.from("#title", {
+            y: 150,
+            opacity: 0,
+            duration: 1.5,
+            ease: "power4.out"
+        });
+
+        gsap.to("#title", {
+            y: -200,
+            opacity: 0.1,
+            scrollTrigger: {
+                trigger: "header",
+                start: "top top",
+                end: "bottom top",
+                scrub: true
+            }
+        });
+
+        // Stagger Grid Entrance
+        gsap.from(".tile", {
+            y: 50,
+            opacity: 0,
+            duration: 1,
+            stagger: 0.1,
+            ease: "power3.out",
+            scrollTrigger: {
+                trigger: ".dashboard",
+                start: "top 80%"
+            }
+        });
+
+        // --- 5. DATA FETCHING ---
+
+        const weatherCodes = {
+            0: 'Clear sky', 1: 'Mainly clear', 2: 'Partly cloudy', 3: 'Overcast',
+            45: 'Fog', 48: 'Depositing rime fog', 51: 'Drizzle', 53: 'Drizzle', 
+            61: 'Rain', 63: 'Rain', 65: 'Heavy Rain', 71: 'Snow', 80: 'Rain showers', 
+            95: 'Thunderstorm'
+        };
+
+        // Call Unified Azure Function Backend Data (API)
+        async function fetchBackendData() {
+            try {
+                const res = await fetch('/api/GetPrices');
+                const data = await res.json();
+                
+                if(data) {
+                    // Update Gold/Silver
+                    document.getElementById('gold-price').textContent = data.gold || 'LIVE FEED DISCONNECTED';
+                    document.getElementById('silver-price').textContent = data.silver || 'LIVE FEED DISCONNECTED';
+                    
+                    // Update Fuel
+                    if(data.fuel) {
+                        document.getElementById('petrol-price').textContent = data.fuel.petrol || 'LIVE FEED DISCONNECTED';
+                    }
+
+                    // Update Weather
+                    if(data.weather && data.weather !== 'Service Unavailable') {
+                        const cw = data.weather.current_weather;
+                        if(cw) {
+                            document.getElementById('temp-val').textContent = `${cw.temperature}°C`;
+                            document.getElementById('wind-val').textContent = `${cw.windspeed} km/h`;
+                            document.getElementById('weather-desc').textContent = weatherCodes[cw.weathercode] || 'Current Weather';
+                        }
+                        
+                        const h = data.weather.hourly;
+                        if(h && h.uv_index) {
+                            const currentHourIdx = new Date().getHours();
+                            document.getElementById('uv-val').textContent = h.uv_index[currentHourIdx] || 'N/A';
+                        }
+                    } else {
+                        document.getElementById('temp-val').textContent = 'Error';
+                        document.getElementById('weather-desc').textContent = 'LIVE FEED DISCONNECTED';
+                        document.getElementById('wind-val').textContent = 'N/A';
+                        document.getElementById('uv-val').textContent = 'N/A';
+                    }
+                }
+            } catch (error) {
+                console.error('Backend API error:', error);
+                
+                // Graceful degrades on API failure
+                document.getElementById('gold-price').innerHTML = 'LIVE FEED DISCONNECTED';
+                document.getElementById('petrol-price').innerHTML = 'LIVE FEED DISCONNECTED';
+                document.getElementById('silver-price').innerHTML = 'LIVE FEED DISCONNECTED';
+                document.getElementById('temp-val').textContent = 'Error';
+                document.getElementById('weather-desc').textContent = 'Disconnected';
+            }
+        }
+
+        fetchBackendData();
+
+    </script>
 </body>
 </html>
