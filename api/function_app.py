@@ -1,5 +1,6 @@
 import azure.functions as func
 import json
+import logging
 import os
 import requests
 import time
@@ -27,8 +28,24 @@ def get_currency_symbol(curr):
 
 @app.route(route="GetPrices")
 def GetPrices(req: func.HttpRequest) -> func.HttpResponse:
+    logging.info("GetPrices API called.")
+    
+    # Task 1: Backend Security (CORS & Logging)
+    allowed_origin = os.getenv("ALLOWED_ORIGIN")
+    origin = req.headers.get("Origin") or req.headers.get("Referer")
+    
+    if allowed_origin and origin:
+        if not origin.startswith(allowed_origin):
+            logging.warning(f"Unauthorized access attempt from {origin}")
+            return func.HttpResponse(
+                json.dumps({"error": "Unauthorized Origin"}),
+                mimetype="application/json",
+                status_code=403
+            )
+
     gold_api_key = os.getenv('GOLD_API_KEY')
     if not gold_api_key:
+        logging.error("GOLD_API_KEY is missing.")
         return func.HttpResponse(
             json.dumps({"error": "GOLD_API_KEY is missing."}),
             mimetype="application/json",
@@ -40,17 +57,21 @@ def GetPrices(req: func.HttpRequest) -> func.HttpResponse:
     if location not in LOCATIONS:
         location = 'vadodara'
         
+    force_refresh = req.params.get('refresh', 'false').lower() == 'true'
+        
     global cache
     current_time = time.time()
     
     # Return cache if valid for this specific location
-    if location in cache["data"] and (current_time - cache["last_fetched"].get(location, 0) < CACHE_DURATION):
+    if not force_refresh and location in cache["data"] and (current_time - cache["last_fetched"].get(location, 0) < CACHE_DURATION):
+        logging.info(f"Returning cached data for: {location}")
         return func.HttpResponse(
             json.dumps(cache["data"][location]),
             mimetype="application/json",
             status_code=200
         )
 
+    logging.info(f"Fetching fresh data for: {location}")
     loc_data = LOCATIONS[location]
     curr = loc_data["currency"]
     sym = get_currency_symbol(curr)
@@ -60,7 +81,8 @@ def GetPrices(req: func.HttpRequest) -> func.HttpResponse:
         "gold": "Service Unavailable",
         "silver": "Service Unavailable",
         "fuel": loc_data["fuel"],
-        "location": location.capitalize()
+        "location": location.capitalize(),
+        "alert_status": "normal"
     }
     
     # 1. Fetch Weather
@@ -86,7 +108,37 @@ def GetPrices(req: func.HttpRequest) -> func.HttpResponse:
             if price_oz:
                 price_10g = price_oz / 3.11034768
                 unified_data["gold"] = f"{sym}{price_10g:,.2f}"
-    except Exception:
+                
+                # Check Target Price for Alert
+                target_str = os.getenv("TARGET_PRICE")
+                if target_str:
+                    try:
+                        target = float(target_str)
+                        if price_10g < target:
+                            unified_data["alert_status"] = "triggered"
+                            logging.info(f"Price alert! {price_10g} < {target}")
+                            
+                            # RPA Twilio Integration
+                            twilio_sid = os.getenv("TWILIO_ACCOUNT_SID")
+                            twilio_token = os.getenv("TWILIO_AUTH_TOKEN")
+                            recipient = os.getenv("ALERT_PHONE_NUMBER")
+                            
+                            if twilio_sid and twilio_token and recipient:
+                                twilio_url = f"https://api.twilio.com/2010-04-01/Accounts/{twilio_sid}/Messages.json"
+                                payload = {
+                                    "From": os.getenv("TWILIO_FROM_NUMBER", "whatsapp:+14155238886"),
+                                    "To": f"whatsapp:{recipient}",
+                                    "Body": f"🚨 PRICE ALERT! Gold has fallen to {sym}{price_10g:,.2f} in {location.capitalize()} (Target: {sym}{target:,.2f})"
+                                }
+                                requests.post(twilio_url, auth=(twilio_sid, twilio_token), data=payload)
+                        else:
+                            unified_data["alert_status"] = "normal"
+                    except Exception as err:
+                        logging.error(f"Alert configuration error: {err}")
+                else:
+                    unified_data["alert_status"] = "normal"
+    except Exception as e:
+        logging.error(f"Gold API Error: {e}")
         pass
         
     # Fetch Silver (API returns Ounce. Convert to 1kg)

@@ -348,6 +348,9 @@
         <div class="hero-text">
             <h1 id="greeting">Good Morning, Explorer</h1>
             <p>Your real-time market and environment overview.</p>
+            <button id="refresh-btn" style="margin-top: 1.5rem; background: rgba(255,255,255,0.1); border: 1px solid rgba(255,255,255,0.2); color: #fff; padding: 0.6rem 1.2rem; border-radius: 30px; font-family: inherit; font-size: 0.9rem; cursor: pointer; transition: background 0.3s ease, border-color 0.3s ease;">
+                <i class="fa-solid fa-rotate-right" id="refresh-icon"></i> Refresh Now
+            </button>
         </div>
 
         <main class="bento-grid" data-view="overview" id="dashboard">
@@ -359,7 +362,7 @@
                 <div class="data-group">
                     <div class="data-row">
                         <div>
-                            <div class="data-label">Gold (24K)</div>
+                            <div class="data-label">Gold (24K) <span class="alert-badge" id="gold-alert-badge" style="display:none; font-size: 0.7rem; padding: 2px 6px; border-radius: 12px; margin-left: 8px; font-weight: 600; text-transform: uppercase;">Status</span></div>
                             <div class="data-sub">per 10g</div>
                         </div>
                         <div class="data-value" id="gold-price">Fetching...</div>
@@ -502,7 +505,8 @@
             document.getElementById('temp-val').textContent = '--';
             document.getElementById('humidity-val').textContent = '--';
             document.getElementById('weather-desc').textContent = msg;
-            
+            document.getElementById('gold-alert-badge').style.display = 'none';
+
             document.querySelectorAll('.data-value').forEach(el => {
                 if(el.innerText === msg) {
                     el.style.fontSize = '1.2rem';
@@ -512,10 +516,13 @@
             });
         }
 
-        async function fetchBackendData(location = 'vadodara') {
+        let currentLocation = 'vadodara';
+
+        async function fetchBackendData(location = 'vadodara', forceRefresh = false) {
             setOfflineState('Fetching...');
             try {
-                const res = await fetch(`/api/GetPrices?location=${location}`);
+                const refreshParam = forceRefresh ? '&refresh=true' : '';
+                const res = await fetch(`/api/GetPrices?location=${location}${refreshParam}`);
                 if (!res.ok) throw new Error(`HTTP error! status: ${res.status}`);
                 
                 const data = await res.json();
@@ -533,6 +540,25 @@
                     document.getElementById('gold-price').textContent = data.gold && data.gold !== 'Service Unavailable' ? data.gold : 'Offline';
                     document.getElementById('silver-price').textContent = data.silver && data.silver !== 'Service Unavailable' ? data.silver : 'Offline';
                     
+                    // Alert Badge Check
+                    const badge = document.getElementById('gold-alert-badge');
+                    if (data.alert_status) {
+                        badge.style.display = 'inline-block';
+                        if (data.alert_status === 'triggered') {
+                            badge.textContent = 'Alert Triggered';
+                            badge.style.backgroundColor = 'rgba(239, 68, 68, 0.2)'; // Tailwind red-500
+                            badge.style.color = '#fca5a5';
+                            badge.style.border = '1px solid rgba(239, 68, 68, 0.4)';
+                        } else {
+                            badge.textContent = 'Normal';
+                            badge.style.backgroundColor = 'rgba(34, 197, 94, 0.2)'; // Tailwind green-500
+                            badge.style.color = '#86efac';
+                            badge.style.border = '1px solid rgba(34, 197, 94, 0.4)';
+                        }
+                    } else {
+                        badge.style.display = 'none';
+                    }
+
                     // Update Fuel
                     if(data.fuel) {
                         document.getElementById('petrol-price').textContent = data.fuel.petrol || 'Offline';
@@ -562,13 +588,45 @@
             link.addEventListener('click', (e) => {
                 e.preventDefault();
                 const loc = e.target.getAttribute('data-loc');
-                fetchBackendData(loc);
+                currentLocation = loc;
+                fetchBackendData(loc, false);
                 menuBtn.click(); // Close Menu overlay
             });
         });
 
         // Initialize Native Default
-        fetchBackendData('vadodara');
+        fetchBackendData(currentLocation, false);
+
+        // --- 6. REFRESH BUTTON WITH GSAP ---
+        const refreshBtn = document.getElementById('refresh-btn');
+        const refreshIcon = document.getElementById('refresh-icon');
+
+        refreshBtn.addEventListener('mouseenter', () => {
+            refreshBtn.style.backgroundColor = 'rgba(255,255,255,0.2)';
+            refreshBtn.style.borderColor = 'rgba(255,255,255,0.4)';
+        });
+        refreshBtn.addEventListener('mouseleave', () => {
+            refreshBtn.style.backgroundColor = 'rgba(255,255,255,0.1)';
+            refreshBtn.style.borderColor = 'rgba(255,255,255,0.2)';
+        });
+
+        refreshBtn.addEventListener('click', async () => {
+            // Spin Animation
+            gsap.to(refreshIcon, {
+                rotation: "+=360",
+                duration: 1,
+                ease: "power2.inOut"
+            });
+            
+            // Pulse Button
+            gsap.fromTo(refreshBtn, 
+                { scale: 0.95 },
+                { scale: 1, duration: 0.3, ease: "back.out(1.7, 0.3)" }
+            );
+
+            // Fetch data, forcing it to bypass cache
+            await fetchBackendData(currentLocation, true);
+        });
     </script>
 </body>
 </html>
