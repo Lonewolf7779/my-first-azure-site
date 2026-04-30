@@ -1,8 +1,10 @@
 import azure.functions as func
 import json
 
-def main(req: func.HttpRequest) -> func.HttpResponse:
-    # This is a sample response. Later we will add real API calls here.
+app = func.FunctionApp(http_auth_level=func.AuthLevel.ANONYMOUS)
+
+@app.route(route="GetPrices")
+def GetPrices(req: func.HttpRequest) -> func.HttpResponse:
     prices = {
         "gold": "₹72,450",
         "silver": "₹84,200",
